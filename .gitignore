@@ -25,8 +25,13 @@
 *.la
 *.a
 *.lib
+/blynk-library
+/old
 
 # Executables
 *.exe
 *.out
 *.app
+/bin
+
+config

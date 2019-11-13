@@ -40,13 +40,15 @@ all: HomeThermo
 HomeThermo: checkbin checkbuild main.o thermo blynk
 	$(CXX) $(BUILD_DIR)main.o \
 						$(BUILD_DIR)HomeThermo.o \
+						$(BUILD_DIR)log.o \
+						$(BUILD_DIR)config.o \
 						$(BLYNK_DIR)BlynkDebug.o \
 						$(BLYNK_DIR)BlynkHandlers.o \
 						$(BLYNK_DIR)BlynkTimer.o \
 						$(LIB) \
 						-o $(BIN_DIR)$(BIN)
 
-thermo: HomeThermo.o
+thermo: HomeThermo.o log.o config.o
 
 blynk: BlynkDebug.o BlynkHandlers.o BlynkTimer.o
 
@@ -55,6 +57,12 @@ main.o:
 
 HomeThermo.o:
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $(INCLUDE_BLYNK) $(SOURCE_DIR)HomeThermo.cpp -o $(BUILD_DIR)HomeThermo.o
+
+log.o:
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(SOURCE_DIR)log.cpp -o $(BUILD_DIR)log.o
+
+config.o:
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(SOURCE_DIR)config.cpp -o $(BUILD_DIR)config.o
 
 BlynkDebug.o:
 	$(CXX) $(CXXFLAGS) $(INCLUDE_BLYNK) $(BLYNK_DIR)BlynkDebug.cpp -o $(BLYNK_DIR)BlynkDebug.o

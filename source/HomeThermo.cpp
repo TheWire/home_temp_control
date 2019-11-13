@@ -20,14 +20,14 @@ const string HomeThermoConfig::DEFAULT_TEMP = "default_temp_target";
 const string HomeThermoConfig::PATH_THERMO = "path_thermo";
 const string HomeThermoConfig::PATH_LOG = "path_log";
 
-ThermoLog::ThermoLog(ThermoLogLevel logLevel)
+ThermoLog::ThermoLog(ThermoLogLevel logLevel, const char* path)
 : level(logLevel), logPath(path)
 {
 }
 
 
 
-void ThermoLog::log(ThermoLogLevel logLevel, string str)
+void ThermoLog::log(const char* str, ThermoLogLevel logLevel=LOG_STD)
 {
 	if(logLevel >= level)
 	{
@@ -191,7 +191,7 @@ BlynkTransportSocket HomeThermo::_blynkTransport;
 
 HomeThermo::HomeThermo(const char* configPath, ThermoLogLevel level = LOG_STD)
 : config(configPath), thermoLst(config.path_thermo.c_str()),
-log(config.path_log.c_str()), rf24(RPI_V2_GPIO_P1_15, BCM2835_SPI_CS0, 
+log(level, config.path_log.c_str()), rf24(RPI_V2_GPIO_P1_15, BCM2835_SPI_CS0, 
 BCM2835_SPI_SPEED_8MHZ), rf24network(rf24), app(HomeThermo::_blynkTransport),
 lower_bound(0.5), upper_bound(0.5), main_temp(20), heatingOn(false), 
 target(20.0), timeLst()
@@ -204,6 +204,7 @@ target(20.0), timeLst()
  
 [[ noreturn ]] void HomeThermo::begin()
 {
+	log.log("Thermostat starting...", LOG_STD);
 	rf24.begin();
 	rf24network.begin(BASE_NODE);
 	app.begin(config.app_key.c_str());

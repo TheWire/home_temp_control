@@ -5,6 +5,7 @@
 #include <list>
 #include <set>
 #include <string>
+#include <sstream>
 #include <iostream>
 
 enum ThermoLogLevel
@@ -16,13 +17,13 @@ enum ThermoLogLevel
 class ThermoLog
 {
 	public:
-		ThermoLog();
-		log(ThermoLogLevel;, std::string);
+		ThermoLog(ThermoLogLevel, const char*);
+		void log(const char*, ThermoLogLevel);
 		std::ostringstream& log(ThermoLogLevel);
 	private:
 		ThermoLogLevel level;
 		std::ostringstream os;
-		string logPath;
+		std::string logPath;
 
 };
 
@@ -70,6 +71,7 @@ class HomeThermoConfig : public FileParser
 		std::string trans_command;
 		std::string path_thermo;
 		std::string app_key;
+		std::string path_log;
 		int trans_pin;
 		int code_bits;
 		int trans_repeat;
@@ -78,6 +80,7 @@ class HomeThermoConfig : public FileParser
 		std::string heating_code_off;
 
 	private:
+	
 		static const std::string PYTHON_CMD;
 		static const std::string TRANS_PATH;
 		static const std::string TRANS_CMD;

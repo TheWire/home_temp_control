@@ -1,16 +1,17 @@
 #include <log.h>
 using namespace std;
 
-ThermoLog::ThermoLog(ThermoLogLevel logLevel, const char* path)
+ThermoLog::ThermoLog(ThermoLogLevel logLevel, const char* path, int tempInterval)
 : level(logLevel), logPath(path)
 {
+	this->tempInterval = tempInterval;
 }
 
 
 
-void ThermoLog::log(const char* str, ThermoLogLevel logLevel=LOG_STD)
+void ThermoLog::log(string str, ThermoLogLevel logLevel)
 {
-	if(logLevel >= level)
+	if(logLevel <= level)
 	{
 		time_t now = time(NULL);
 		tm *local = localtime(&now);
@@ -21,8 +22,19 @@ void ThermoLog::log(const char* str, ThermoLogLevel logLevel=LOG_STD)
 		os << str << endl;
 	}
 	ofstream logFile;
-	logFile.open(logPath);
+	logFile.open(logPath, std::ios_base::app);
 	logFile << os.str();
 	logFile.close();
 	cout << os.str();
+	os.str("");
+
+}
+
+void ThermoLog::temp(float temp)
+{
+	if(lastTmpLog + tempInterval < time(NULL))
+	{
+		lastTmpLog = time(NULL);
+		log("temp: " + to_string(temp), LOG_TMP);
+	}
 }

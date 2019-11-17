@@ -6,8 +6,8 @@
 using namespace std;
 
 
-TimeTemp::TimeTemp(int time, float temp)
-: _time(time), _temp(temp)
+TimeTemp::TimeTemp(int time, float temp, bool isSingle)
+: _time(time), _temp(temp), _single(isSingle)
 {
 }
 
@@ -34,43 +34,16 @@ bool TimeTemp::operator< (const TimeTemp &a) const
 }
 
 
-
-ThermoList::ThermoList(const char* path)
-: FileParser(path), tList()
-{
-
-}
-
-void ThermoList::parseValue(ThermoTrans &trans, string value)
-{
-	int delPos1, delPos2; 
-	delPos1 = value.find("|");
-	trans.name = value.substr(0, delPos1);
-	delPos2 = value.substr(delPos1 + 1).find("|");
-	trans.pipe = stoi(value.substr(delPos1 + 1, delPos2));
-	trans.weight = stoi(value.substr(delPos2 + 1));
-
-}
-
-void ThermoList::setField(string field, string value)
-{
-	ThermoTrans trans;
-	trans.id = stoi(field);
-	parseValue(trans, value);
-
-}
-
-
 BlynkTransportSocket HomeThermo::_blynkTransport;
 
 HomeThermo::HomeThermo(const char* configPath, ThermoLogLevel level = LOG_STD)
 : config(configPath), thermoLst(config.path_thermo.c_str()),
-log(level, config.path_log.c_str()), rf24(RPI_V2_GPIO_P1_15, BCM2835_SPI_CS0, 
+log(level, config.path_log.c_str()), rf24(RPI_V2_GPIO_P1_22, BCM2835_SPI_CS0, 
 BCM2835_SPI_SPEED_8MHZ), rf24network(rf24), app(HomeThermo::_blynkTransport),
 lower_bound(0.5), upper_bound(0.5), main_temp(20), heatingOn(false), 
-target(20.0), timeLst()
+target(20.0), timeLst(), thermoConnected(0), thermoTO(60)
 {
-	config.parse();
+	config.print();
 	thermoLst.parse();
 	target = config.default_temp_target;
 }
@@ -79,9 +52,16 @@ target(20.0), timeLst()
 [[ noreturn ]] void HomeThermo::begin()
 {
 	log.log("Thermostat starting...", LOG_STD);
-	rf24.begin();
-	rf24network.begin(BASE_NODE);
+	bool ret = rf24.begin();
+	if(!ret) {
+		log.log("error starting rf24", LOG_STD);
+		exit(1);
+	}
+	rf24network.begin(90, BASE_NODE);
+	rf24.printDetails();
+	log.log("rf24 started", LOG_STD);
 	app.begin(config.app_key.c_str());
+	log.log("app started", LOG_STD);
 	main_loop();
 }
 
@@ -117,21 +97,37 @@ void HomeThermo::getRF24()
 	{
 		rf24network.read(header, &temp, sizeof(temp));
 		ThermoTrans *thermo = getThermoByID(header.from_node);
-		thermo->temp = temp;
+		if(thermo != NULL) 
+		{
+			thermo->temp = temp;
+			thermo->stamp = time(NULL);
+		}
+		
 	}
 }
 
 void HomeThermo::updateMainTemp()
 {
-	float sum;
-	int weight_sum;
+	float sum = 0;
+	int weight_sum = 0;
+	thermoConnected = 0;
 	list<ThermoTrans>::iterator it;
 	for(it = thermoLst.tList.begin(); it != thermoLst.tList.end(); it++)
 	{
-		sum += it->temp * (float) it->weight;
-		weight_sum += it->weight;
+		//only use thermometer if temp is valid and it wasn't updated too long ago
+		if(it->temp < 99.9 && it->stamp + thermoTO >= time(NULL)) 
+		{
+			sum += it->temp * (float) it->weight;
+			weight_sum += it->weight;
+			thermoConnected++;
+			cout << "con" << endl;
+		}
 	}
-	main_temp = sum / (float) weight_sum;
+	if(thermoConnected > 0) 
+	{
+		main_temp = sum / (float) weight_sum;
+		log.temp(main_temp);
+	}
 }
 
 string HomeThermo::transCommand(string code, int bits, int repeat)
@@ -142,23 +138,32 @@ string HomeThermo::transCommand(string code, int bits, int repeat)
 	command << " -b " << bits;
 	command << " -r " << repeat;
 	cout << command.str() << endl;
-	return command.str();
+	string cmd = command.str();
+	log.log("command issued: " + command.str(), LOG_DEV);
+	command.str("");
+	return cmd;
 }
 
 void HomeThermo::turnHeatingOn()
 {
+	log.log("heating on", LOG_STD);
 	system(transCommand(config.heating_code_on, config.code_bits, config.trans_repeat).c_str());
+	heatingOn = true;
 }
 
 void HomeThermo::turnHeatingOff()
 {
+	log.log("heating off", LOG_STD);
 	system(transCommand(config.heating_code_off, config.code_bits, config.trans_repeat).c_str());
+	heatingOn = false;
 }
 
 void HomeThermo::checkTempOn()
 {
 	if(main_temp >= (target + upper_bound))
 	{
+		log.log("temperature target reached", LOG_STD);
+		log.log("heating off at: " + to_string(main_temp), LOG_DEV);
 		turnHeatingOff();
 	}
 }
@@ -167,6 +172,8 @@ void HomeThermo::checkTempOff()
 {
 	if(main_temp <= (target - lower_bound))
 	{
+		log.log("temperature bellow threshold", LOG_STD);
+		log.log("heating on at: " + to_string(main_temp), LOG_DEV);
 		turnHeatingOn();
 	}
 
@@ -174,13 +181,14 @@ void HomeThermo::checkTempOff()
 
 void HomeThermo::checkTemp()
 {
+	cout << main_temp << "|" << target << endl;
 	if(heatingOn)
 	{
-		checkTempOff();
+		checkTempOn();
 	}
 	else
 	{
-		checkTempOn();
+		checkTempOff();
 	}
 }
 
@@ -202,6 +210,7 @@ void HomeThermo::updateTargetTemp()
 		if(it->getTime() >= inSecs)
 		{
 			target = it->getTemp();
+			log.log("time reached, new target temp: " + to_string(target), LOG_STD);
 		}
 	}
 
@@ -209,7 +218,7 @@ void HomeThermo::updateTargetTemp()
 
 [[ noreturn ]] void HomeThermo::main_loop()
 {
-	
+	bool noTherm = true;
 	while(1)
 	{
 		if(!timeLst.empty())
@@ -218,8 +227,23 @@ void HomeThermo::updateTargetTemp()
 		}
 		getRF24();
 		updateMainTemp();
-		checkTemp();
-		updateApp();
+		cout << thermoConnected << endl;
+		if(thermoConnected > 0)
+		{
+			checkTemp();
+			updateApp();
+			noTherm = false;
+		}
+		else
+		{
+			if(noTherm)
+			{
+				log.log("no thermometers connected", LOG_STD);
+				main_temp = 99.9;
+			}
+			noTherm = true;
+		}
+		
 		delay(UPDATE_POLL_TIME);
 	}
 }

@@ -1,6 +1,17 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <list>
+
+struct ThermoTrans
+{
+	uint16_t id;
+	float temp;
+	std::string name;
+	int pipe;
+	int weight;
+	time_t stamp;
+};
 
 class FileParser
 {
@@ -18,6 +29,7 @@ class HomeThermoConfig : public FileParser
 {
 	public:
 		HomeThermoConfig(const char*);
+		void print();
 
 		std::string python_command;
 		std::string trans_path;
@@ -48,4 +60,14 @@ class HomeThermoConfig : public FileParser
 		static const std::string PATH_LOG;
 
 		void setField(std::string, std::string);
+};
+
+class ThermoList : public FileParser
+{
+	public:
+		ThermoList(const char*);
+		std::list<ThermoTrans>tList;
+	private:
+		void setField(std::string, std::string);
+		void parseValue(ThermoTrans&, std::string);
 };

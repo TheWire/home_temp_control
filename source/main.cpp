@@ -5,7 +5,7 @@
 
 int main()
 {
-    HomeThermo thermo(CONFIGPATH, LOG_STD);
+    HomeThermo thermo(CONFIGPATH, LOG_DEV);
     thermo.begin();
     return 0;
 }

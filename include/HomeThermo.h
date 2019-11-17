@@ -13,34 +13,15 @@
 class TimeTemp
 {
 	public:
-		TimeTemp(int, float);
+		TimeTemp(int, float, bool);
 		int getTime() const;
 		float getTemp() const;
+		bool isSingle();
 		bool operator< (const TimeTemp&) const;
 	private:
 		int _time;
 		float _temp;
-};
-
-struct ThermoTrans
-{
-	uint16_t id;
-	float temp;
-	std::string name;
-	int pipe;
-	int weight;
-};
-
-
-
-class ThermoList : public FileParser
-{
-	public:
-		ThermoList(const char*);
-		std::list<ThermoTrans>tList;
-	private:
-		void setField(std::string, std::string);
-		void parseValue(ThermoTrans&, std::string);
+		bool _single;
 };
 
 class HomeThermo
@@ -53,6 +34,7 @@ class HomeThermo
 		const int UPDATE_POLL_TIME = 1000; //ms
 		HomeThermoConfig config;
 		ThermoList thermoLst;
+		int thermoConnected;
 		ThermoLog log;
 		static BlynkTransportSocket _blynkTransport;
 		RF24 rf24;
@@ -60,6 +42,7 @@ class HomeThermo
 		BlynkSocket app;
 		float lower_bound, upper_bound;
 		float main_temp;
+		time_t thermoTO;
 		int main_temp_pipe;
 
 		bool heatingOn;

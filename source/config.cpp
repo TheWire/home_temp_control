@@ -1,5 +1,6 @@
 #include <config.h>
 #include <algorithm>
+#include <cstring>
 
 using namespace std;
 
@@ -25,7 +26,11 @@ FileParser::FileParser(const char* path)
 void FileParser::parse()
 {
 	ifstream configFile;
-	configFile.open(configPath);
+	configFile.open(configPath, fstream::in);
+	///////
+	if(configFile.fail()) {
+		cout << "error opening file " << strerror(errno) << endl;
+	}
 	string line;
 	while(getline(configFile, line))
 	{
@@ -48,6 +53,7 @@ heating_code_on("947871"), heating_code_off("947863"),
 python_command("python3"), trans_path("trans/"), 
 trans_command("XY_send_code.py"), default_temp_target(20)
 {
+	parse();
 }
 
 void HomeThermoConfig::setField(string field, string value)
@@ -101,4 +107,48 @@ void HomeThermoConfig::setField(string field, string value)
 		path_log = value;
 	}
 
+}
+
+void HomeThermoConfig::print()
+{
+	cout << "[" << python_command << "]" << endl;
+	cout << "[" << trans_path << "]" << endl;
+	cout << "[" << trans_command << "]" << endl;
+	cout << "[" << trans_pin << "]" << endl;
+	cout << "[" << app_key << "]" << endl;
+	cout << "[" << code_bits << "]" << endl;
+	cout << "[" << trans_repeat << "]" << endl;
+	cout << "[" << code_bits << "]" << endl;
+	cout << "[" << code_bits << "]" << endl;
+	cout << "[" << heating_code_on << "]" << endl;
+	cout << "[" << default_temp_target << "]" << endl;
+	cout << "[" << path_thermo << "]" << endl;
+	cout << "[" << path_log << "]" << endl;
+}
+
+ThermoList::ThermoList(const char* path)
+: FileParser(path), tList()
+{
+
+}
+
+void ThermoList::parseValue(ThermoTrans &trans, string value)
+{
+	int delPos1, delPos2; 
+	delPos1 = value.find("|");
+	trans.name = value.substr(0, delPos1);
+	delPos1++;
+	delPos2 = value.substr(delPos1).find("|") + delPos1 + 1;
+	trans.pipe = stoi(value.substr(delPos1, delPos2));
+	trans.weight = stoi(value.substr(delPos2));
+}
+
+void ThermoList::setField(string field, string value)
+{
+	ThermoTrans trans;
+	trans.stamp = 0;
+	trans.temp = 99.9;
+	trans.id = stoi(field);
+	parseValue(trans, value);
+	tList.push_front(trans);
 }

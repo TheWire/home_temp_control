@@ -2,6 +2,8 @@
 #include <iostream>
 #include <fstream>
 #include <list>
+#include <vector>
+#include <temp.h>
 
 struct ThermoTrans
 {
@@ -18,10 +20,12 @@ class FileParser
 	public:
 		FileParser(const char* path);
 		void parse();
+		std::vector<std::string> parseValue(std::string value);
 	private:
 		std::string configPath;
 
-		virtual void setField(std::string, std::string){}
+		virtual void setField(std::string, std::vector<std::string>){}
+		virtual void afterParse(){}
 
 };
 
@@ -34,7 +38,7 @@ class HomeThermoConfig : public FileParser
 		std::string python_command;
 		std::string trans_path;
 		std::string trans_command;
-		std::string path_thermo;
+		std::string path_data;
 		std::string app_key;
 		std::string path_log;
 		int trans_pin;
@@ -56,10 +60,10 @@ class HomeThermoConfig : public FileParser
 		static const std::string HEATING_CODE_ON;
 		static const std::string HEATING_CODE_OFF;
 		static const std::string DEFAULT_TEMP;
-		static const std::string PATH_THERMO;
+		static const std::string PATH_DATA;
 		static const std::string PATH_LOG;
 
-		void setField(std::string, std::string);
+		void setField(std::string, std::vector<std::string>);
 };
 
 class ThermoList : public FileParser
@@ -68,6 +72,22 @@ class ThermoList : public FileParser
 		ThermoList(const char*);
 		std::list<ThermoTrans>tList;
 	private:
-		void setField(std::string, std::string);
-		void parseValue(ThermoTrans&, std::string);
+		static const std::string THERMO_FILE;
+		void setField(std::string, std::vector<std::string>);
+};
+
+class TimeTempList : public FileParser
+{
+	public: 
+		TimeTempList(const char*);
+		bool empty();
+		TimeTemp* updateTargetTemp(time_t);
+	private:
+		static const std::string TT_FILE;
+		std::list<TimeTemp>ttList;
+		void afterParse();
+		void setField(std::string, std::vector<std::string>);
+		int convertToSecs(int, int, int);
+
+		TimeTemp *active;
 };

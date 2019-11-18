@@ -1,7 +1,9 @@
 #include <iostream>
 #include <HomeThermo.h>
 
-#define CONFIGPATH "../config/config"
+using namespace std;
+
+#define CONFIGPATH "../config/conf"
 
 int main()
 {

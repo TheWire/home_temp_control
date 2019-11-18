@@ -14,7 +14,7 @@ CXXFLAGS = -c -g2 -O0 \
 		-Wfloat-equal  -Wformat  -Wformat=2 \
 		-Wformat-nonliteral -Wformat-security  \
 		-Wformat-y2k \
-		-Wimplicit  -Wimport  -Winit-self  -Winline \
+		-Wimport  -Winit-self  -Winline \
 		-Winvalid-pch   \
 		-Wunsafe-loop-optimizations  -Wlong-long -Wmissing-braces \
 		-Wmissing-field-initializers -Wmissing-format-attribute   \
@@ -42,13 +42,14 @@ HomeThermo: checkbin checkbuild main.o thermo blynk
 						$(BUILD_DIR)HomeThermo.o \
 						$(BUILD_DIR)log.o \
 						$(BUILD_DIR)config.o \
+						$(BUILD_DIR)temp.o \
 						$(BLYNK_DIR)BlynkDebug.o \
 						$(BLYNK_DIR)BlynkHandlers.o \
 						$(BLYNK_DIR)BlynkTimer.o \
 						$(LIB) \
 						-o $(BIN_DIR)$(BIN)
 
-thermo: HomeThermo.o log.o config.o
+thermo: HomeThermo.o log.o config.o temp.o
 
 blynk: BlynkDebug.o BlynkHandlers.o BlynkTimer.o
 
@@ -63,6 +64,9 @@ log.o:
 
 config.o:
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $(SOURCE_DIR)config.cpp -o $(BUILD_DIR)config.o
+
+temp.o:
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(SOURCE_DIR)temp.cpp -o $(BUILD_DIR)temp.o
 
 BlynkDebug.o:
 	$(CXX) $(CXXFLAGS) $(INCLUDE_BLYNK) $(BLYNK_DIR)BlynkDebug.cpp -o $(BLYNK_DIR)BlynkDebug.o

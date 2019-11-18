@@ -14,8 +14,11 @@ const string HomeThermoConfig::TRANS_REPEAT = "transmit_repeat";
 const string HomeThermoConfig::HEATING_CODE_ON = "heating_on_code";
 const string HomeThermoConfig::HEATING_CODE_OFF = "heating_off_code";
 const string HomeThermoConfig::DEFAULT_TEMP = "default_temp_target";
-const string HomeThermoConfig::PATH_THERMO = "path_thermo";
+const string HomeThermoConfig::PATH_DATA = "path_data";
 const string HomeThermoConfig::PATH_LOG = "path_log";
+
+const string ThermoList::THERMO_FILE = "thermometers";
+const string TimeTempList::TT_FILE = "times";
 
 
 FileParser::FileParser(const char* path)
@@ -40,11 +43,31 @@ void FileParser::parse()
 			continue;
 		}
 		int delPos = line.find("=");
-		setField(line.substr(0, delPos), line.substr(delPos + 1));
+		setField(line.substr(0, delPos), parseValue(line.substr(delPos + 1)));
 
 	}
 	configFile.close();
+	afterParse();
 }
+
+vector<string> FileParser::parseValue(string value)
+{
+	vector<string> valueList;
+	int pos = 0;
+	while(pos < value.length()) {
+		value = value.substr(pos, value.length());
+		pos = value.find("|");
+		if(pos == string::npos)
+		{
+			pos = value.length();
+		}
+		valueList.push_back(value.substr(0, pos));
+		pos++;
+	}
+	return valueList;
+}
+
+
 
 HomeThermoConfig::HomeThermoConfig(const char* path)
 : FileParser(path),
@@ -56,99 +79,145 @@ trans_command("XY_send_code.py"), default_temp_target(20)
 	parse();
 }
 
-void HomeThermoConfig::setField(string field, string value)
+void HomeThermoConfig::setField(string field, vector<string> values)
 {
+	if(values.empty()) return;
 	if(field.compare(PYTHON_CMD) == 0)
 	{
-		python_command = value;
+		python_command = values[0];
 	}
 	else if(field.compare(TRANS_PATH) == 0)
 	{
-		trans_path = value;
+		trans_path = values[0];
 	}
 	else if(field.compare(TRANS_CMD) == 0)
 	{
-		trans_command = value;
+		trans_command = values[0];
 	}
 	else if(field.compare(TRANS_PIN) == 0)
 	{
-		trans_pin = stoi(value);
+		trans_pin = stoi(values[0]);
 	}
 	else if(field.compare(APP_KEY) == 0)
 	{
-		app_key = value;
+		app_key = values[0];
 	}
 	else if(field.compare(CODE_BITS) == 0)
 	{
-		code_bits = stoi(value);
+		code_bits = stoi(values[0]);
 	}
 	else if(field.compare(TRANS_REPEAT) == 0)
 	{
-		trans_repeat = stoi(value);
+		trans_repeat = stoi(values[0]);
 	}
 	else if(field.compare(HEATING_CODE_ON) == 0)
 	{
-		heating_code_on = value;
+		heating_code_on = values[0];
 	}
 	else if(field.compare(HEATING_CODE_OFF) == 0)
 	{
-		heating_code_off = value;
+		heating_code_off = values[0];
 	}
 	else if(field.compare(DEFAULT_TEMP) == 0)
 	{
-		default_temp_target = stof(value);
+		default_temp_target = stof(values[0]);
 	}
-	else if(field.compare(PATH_THERMO) == 0)
+	else if(field.compare(PATH_DATA) == 0)
 	{
-		path_thermo = value;
+		path_data = values[0];
 	}
 	else if(field.compare(PATH_LOG) == 0)
 	{
-		path_log = value;
+		path_log = values[0];
 	}
 
 }
 
 void HomeThermoConfig::print()
 {
-	cout << "[" << python_command << "]" << endl;
-	cout << "[" << trans_path << "]" << endl;
-	cout << "[" << trans_command << "]" << endl;
-	cout << "[" << trans_pin << "]" << endl;
-	cout << "[" << app_key << "]" << endl;
-	cout << "[" << code_bits << "]" << endl;
-	cout << "[" << trans_repeat << "]" << endl;
-	cout << "[" << code_bits << "]" << endl;
-	cout << "[" << code_bits << "]" << endl;
-	cout << "[" << heating_code_on << "]" << endl;
-	cout << "[" << default_temp_target << "]" << endl;
-	cout << "[" << path_thermo << "]" << endl;
-	cout << "[" << path_log << "]" << endl;
+	cout << "python_command " << "[" << python_command << "]" << endl;
+	cout << "trans_path " << "[" << trans_path << "]" << endl;
+	cout << "trans_command " << "[" << trans_command << "]" << endl;
+	cout << "trans_pin " << "[" << trans_pin << "]" << endl;
+	cout << "app_key " << "[" << app_key << "]" << endl;
+	cout << "code_bits " << "[" << code_bits << "]" << endl;
+	cout << "trans_repeat " << "[" << trans_repeat << "]" << endl;
+	cout << "heating_code_on " << "[" << heating_code_on << "]" << endl;
+	cout << "heating_code_off " << "[" << heating_code_off << "]" << endl;
+	cout << "default_temp_target " << "[" << default_temp_target << "]" << endl;
+	cout << "path_data " << "[" << path_data << "]" << endl;
+	cout << "path_log " << "[" << path_log << "]" << endl;
 }
 
 ThermoList::ThermoList(const char* path)
-: FileParser(path), tList()
+: FileParser((path + THERMO_FILE).c_str()), tList()
 {
 
 }
 
-void ThermoList::parseValue(ThermoTrans &trans, string value)
-{
-	int delPos1, delPos2; 
-	delPos1 = value.find("|");
-	trans.name = value.substr(0, delPos1);
-	delPos1++;
-	delPos2 = value.substr(delPos1).find("|") + delPos1 + 1;
-	trans.pipe = stoi(value.substr(delPos1, delPos2));
-	trans.weight = stoi(value.substr(delPos2));
-}
-
-void ThermoList::setField(string field, string value)
+void ThermoList::setField(string field, vector<string> values)
 {
 	ThermoTrans trans;
 	trans.stamp = 0;
 	trans.temp = 99.9;
 	trans.id = stoi(field);
-	parseValue(trans, value);
-	tList.push_front(trans);
+	trans.name = values[0];
+	trans.pipe = stoi(values[1]);
+	trans.weight = stoi(values[2]);
+	tList.push_back(trans);
 }
+
+
+TimeTempList::TimeTempList(const char* path)
+: FileParser((path + TT_FILE).c_str()), ttList(), active(NULL)
+{
+}
+
+void TimeTempList::afterParse()
+{
+	if(!ttList.empty())
+	{
+		ttList.sort();
+		active = &ttList.front();
+	}
+}
+
+bool TimeTempList::empty()
+{
+	return ttList.empty();
+}
+
+void TimeTempList::setField(string field, vector<string> values)
+{
+	TimeTemp tt(convertToSecs(stoi(values[0]), stoi(values[1]), stoi(values[2])), stoi(field), false);
+	ttList.push_back(tt);
+}
+
+int TimeTempList::convertToSecs(int hour, int mins, int secs)
+{
+	return (((hour * 60) + mins) * 60) + secs;
+}
+
+TimeTemp* TimeTempList::updateTargetTemp(time_t t)
+{
+	TimeTemp* tmp;
+	bool changed = false;
+	tm *local = localtime(&t);
+	int inSecs = convertToSecs(local->tm_hour, local->tm_min, local->tm_sec);
+	ttList.sort();
+	list<TimeTemp>::iterator it;
+	for(it = ttList.begin(); it != ttList.end(); it++)
+	{
+		if(it->getTime() <= inSecs)
+		{
+			tmp = &*it;
+		}
+	}
+	if(tmp != active) 
+	{
+		active = tmp;
+		return active;
+	}
+	return NULL;
+}
+

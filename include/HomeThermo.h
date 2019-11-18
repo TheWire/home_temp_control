@@ -10,19 +10,6 @@
 #include <config.h>
 
 
-class TimeTemp
-{
-	public:
-		TimeTemp(int, float, bool);
-		int getTime() const;
-		float getTemp() const;
-		bool isSingle();
-		bool operator< (const TimeTemp&) const;
-	private:
-		int _time;
-		float _temp;
-		bool _single;
-};
 
 class HomeThermo
 {
@@ -47,7 +34,7 @@ class HomeThermo
 
 		bool heatingOn;
 
-		std::list<TimeTemp>timeLst;
+		TimeTempList timeLst;
 
 		float target;
 		void updateApp();
@@ -60,7 +47,6 @@ class HomeThermo
 		void checkTempOn();
 		void checkTempOff();
 		void checkTemp();
-		int convertToSecs(int, int, int);
 		void updateTargetTemp();
 		void main_loop();
 };

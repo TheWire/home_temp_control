@@ -35,5 +35,7 @@
 *.pyc
 /bin
 
-config
+conf
 log
+thermometers
+times

@@ -6,45 +6,19 @@
 using namespace std;
 
 
-TimeTemp::TimeTemp(int time, float temp, bool isSingle)
-: _time(time), _temp(temp), _single(isSingle)
-{
-}
-
-int TimeTemp::getTime() const
-{
-	return _time;
-}
-
-float TimeTemp::getTemp() const
-{
-	return _temp;
-}
-
-bool TimeTemp::operator< (const TimeTemp &a) const
-{
-	if(_time < a.getTime())
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
 
 BlynkTransportSocket HomeThermo::_blynkTransport;
 
 HomeThermo::HomeThermo(const char* configPath, ThermoLogLevel level = LOG_STD)
-: config(configPath), thermoLst(config.path_thermo.c_str()),
+: config(configPath), thermoLst(config.path_data.c_str()),
 log(level, config.path_log.c_str()), rf24(RPI_V2_GPIO_P1_22, BCM2835_SPI_CS0, 
 BCM2835_SPI_SPEED_8MHZ), rf24network(rf24), app(HomeThermo::_blynkTransport),
 lower_bound(0.5), upper_bound(0.5), main_temp(20), heatingOn(false), 
-target(20.0), timeLst(), thermoConnected(0), thermoTO(60)
+target(20.0), timeLst(config.path_data.c_str()), thermoConnected(0), thermoTO(60)
 {
 	config.print();
 	thermoLst.parse();
+	timeLst.parse();
 	target = config.default_temp_target;
 }
 
@@ -120,7 +94,6 @@ void HomeThermo::updateMainTemp()
 			sum += it->temp * (float) it->weight;
 			weight_sum += it->weight;
 			thermoConnected++;
-			cout << "con" << endl;
 		}
 	}
 	if(thermoConnected > 0) 
@@ -181,7 +154,6 @@ void HomeThermo::checkTempOff()
 
 void HomeThermo::checkTemp()
 {
-	cout << main_temp << "|" << target << endl;
 	if(heatingOn)
 	{
 		checkTempOn();
@@ -192,28 +164,13 @@ void HomeThermo::checkTemp()
 	}
 }
 
-int HomeThermo::convertToSecs(int hour, int mins, int secs)
-{
-	return (((hour * 60) + mins) * 60) + secs;
-}
-
 void HomeThermo::updateTargetTemp()
 {
-	time_t now = time(NULL);
-	tm *local = localtime(&now);
-	int inSecs = convertToSecs(local->tm_hour, local->tm_min, local->tm_sec);
-	timeLst.sort();
-	target = timeLst.front().getTemp();
-	list<TimeTemp>::iterator it;
-	for(it = timeLst.begin(); it != timeLst.end(); it++)
-	{
-		if(it->getTime() >= inSecs)
-		{
-			target = it->getTemp();
-			log.log("time reached, new target temp: " + to_string(target), LOG_STD);
-		}
+	TimeTemp* tt = timeLst.updateTargetTemp(time(NULL));
+	if(tt != NULL) {
+		target = tt->getTemp();
+		log.log("time reached, new target temp: " + to_string(target), LOG_STD);
 	}
-
 }
 
 [[ noreturn ]] void HomeThermo::main_loop()
@@ -227,7 +184,6 @@ void HomeThermo::updateTargetTemp()
 		}
 		getRF24();
 		updateMainTemp();
-		cout << thermoConnected << endl;
 		if(thermoConnected > 0)
 		{
 			checkTemp();

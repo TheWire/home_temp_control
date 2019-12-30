@@ -73,6 +73,7 @@ void HomeThermo::getRF24()
 		ThermoTrans *thermo = getThermoByID(header.from_node);
 		if(thermo != NULL) 
 		{
+			cout << thermo->id << thermo->name << thermo->temp << endl;
 			thermo->temp = temp;
 			thermo->stamp = time(NULL);
 		}
@@ -103,13 +104,14 @@ void HomeThermo::updateMainTemp()
 	}
 }
 
-string HomeThermo::transCommand(string code, int bits, int repeat)
+string HomeThermo::transCommand(string code, int bits, int repeat, int pin)
 {
 	ostringstream command;
 	command << config.python_command << ' ' << config.trans_path  << config.trans_command;
 	command << " -c " << code;
 	command << " -b " << bits;
 	command << " -r " << repeat;
+	command << " -p " << pin;
 	cout << command.str() << endl;
 	string cmd = command.str();
 	log.log("command issued: " + command.str(), LOG_DEV);
@@ -120,14 +122,14 @@ string HomeThermo::transCommand(string code, int bits, int repeat)
 void HomeThermo::turnHeatingOn()
 {
 	log.log("heating on", LOG_STD);
-	system(transCommand(config.heating_code_on, config.code_bits, config.trans_repeat).c_str());
+	system(transCommand(config.heating_code_on, config.code_bits, config.trans_repeat, config.trans_pin).c_str());
 	heatingOn = true;
 }
 
 void HomeThermo::turnHeatingOff()
 {
 	log.log("heating off", LOG_STD);
-	system(transCommand(config.heating_code_off, config.code_bits, config.trans_repeat).c_str());
+	system(transCommand(config.heating_code_off, config.code_bits, config.trans_repeat, config.trans_pin).c_str());
 	heatingOn = false;
 }
 

@@ -41,7 +41,7 @@ class HomeThermo
 		ThermoTrans* getThermoByID(uint16_t);
 		void getRF24();
 		void updateMainTemp();
-		std::string transCommand(std::string, int, int);
+		std::string transCommand(std::string, int, int, int);
 		void turnHeatingOn();
 		void turnHeatingOff();
 		void checkTempOn();

@@ -190,6 +190,7 @@ bool TimeTempList::empty()
 void TimeTempList::setField(string field, vector<string> values)
 {
 	TimeTemp tt(convertToSecs(stoi(values[0]), stoi(values[1]), stoi(values[2])), stoi(field), false);
+	cout << "^" << tt.getTime() << "<" << tt.getTemp() << endl;
 	ttList.push_back(tt);
 }
 

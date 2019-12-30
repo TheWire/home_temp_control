@@ -17,9 +17,10 @@ lower_bound(0.5), upper_bound(0.5), main_temp(20), heatingOn(false),
 target(20.0), timeLst(config.path_data.c_str()), thermoConnected(0), thermoTO(60)
 {
 	config.print();
+	target = config.default_temp_target;
 	thermoLst.parse();
 	timeLst.parse();
-	target = config.default_temp_target;
+
 }
 
  
@@ -90,7 +91,7 @@ void HomeThermo::updateMainTemp()
 	for(it = thermoLst.tList.begin(); it != thermoLst.tList.end(); it++)
 	{
 		//only use thermometer if temp is valid and it wasn't updated too long ago
-		if(it->temp < 99.9 && it->stamp + thermoTO >= time(NULL)) 
+		if(it->temp < 99.9 && it->temp > -20 && it->stamp + thermoTO >= time(NULL)) 
 		{
 			sum += it->temp * (float) it->weight;
 			weight_sum += it->weight;
@@ -171,7 +172,7 @@ void HomeThermo::updateTargetTemp()
 	TimeTemp* tt = timeLst.updateTargetTemp(time(NULL));
 	if(tt != NULL) {
 		target = tt->getTemp();
-		log.log("time reached, new target temp: " + to_string(target), LOG_STD);
+		log.log("Updated target temp: " + to_string(target), LOG_STD);
 	}
 }
 

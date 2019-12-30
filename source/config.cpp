@@ -178,7 +178,7 @@ void TimeTempList::afterParse()
 	if(!ttList.empty())
 	{
 		ttList.sort();
-		active = &ttList.front();
+		//active = &ttList.front();
 	}
 }
 
@@ -190,7 +190,6 @@ bool TimeTempList::empty()
 void TimeTempList::setField(string field, vector<string> values)
 {
 	TimeTemp tt(convertToSecs(stoi(values[0]), stoi(values[1]), stoi(values[2])), stoi(field), false);
-	cout << "^" << tt.getTime() << "<" << tt.getTemp() << endl;
 	ttList.push_back(tt);
 }
 
@@ -207,6 +206,7 @@ TimeTemp* TimeTempList::updateTargetTemp(time_t t)
 	int inSecs = convertToSecs(local->tm_hour, local->tm_min, local->tm_sec);
 	ttList.sort();
 	list<TimeTemp>::iterator it;
+	tmp = &ttList.front();
 	for(it = ttList.begin(); it != ttList.end(); it++)
 	{
 		if(it->getTime() <= inSecs)
